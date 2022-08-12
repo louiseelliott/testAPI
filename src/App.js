@@ -248,8 +248,8 @@ function App() {
                           <Toggle
                             className="mt-3"
                             labelText="Secure"
-                            labelA="Off"
-                            labelB="On"
+                            labelA="On"
+                            labelB="Off"
                             toggled={secure}
                             id="secure"
                             onToggle={(e) => setSecure(e)}

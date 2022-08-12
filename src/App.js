@@ -13,6 +13,7 @@ import {
   Tabs,
   TextArea,
   TextInput,
+  Toggle,
   UnorderedList,
 } from "@carbon/react";
 import React, { useEffect, useState } from "react";
@@ -54,6 +55,7 @@ function App() {
   const [fileBody, setFileBody] = useState(null);
   const [loadDataFromFile, setLoadDataFromFile] = useState(true);
   const [formUpdated, setFormUpdated] = useState(false);
+  const [secure, setSecure] = useState(false);
 
   const fortmatResponse = (res) => {
     return JSON.stringify(res, null, 2);
@@ -139,10 +141,10 @@ function App() {
 
     let b = body ? " --data " + body : "";
     let u = url ? url : " [URL]";
-
-    let curl = "curl -X " + m + buildH + b + " " + u;
+    let k = secure ? "-k " : "";
+    let curl = "curl -X " + k + m + buildH + b + " " + u;
     setCurl(curl);
-  }, [method, url, body, headers, headerKey, headerValue]);
+  }, [method, url, body, headers, headerKey, headerValue, secure]);
 
   return (
     <Form>
@@ -243,6 +245,14 @@ function App() {
                               disabled={!headerKey || !headerValue}
                             />
                           </div>
+                          <Toggle
+                            labelText="Secure"
+                            labelA="Off"
+                            labelB="On"
+                            toggled={secure}
+                            id="secure"
+                            onToggle={(e) => setSecure(e)}
+                          />
                         </TabPanel>
                         {method && method.toLowerCase() !== "get" ? (
                           <TabPanel>

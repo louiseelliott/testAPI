@@ -139,7 +139,7 @@ function App() {
     if (headers.length > 0)
       headers.map((header) => (buildH += " --header '" + header + "' "));
 
-    let b = body ? " --data '" + body : "' ";
+    let b = body ? " --data '" + body + "'" : "";
     let u = url ? url : " [URL]";
     let k = secure ? "-k " : "";
     let curl = "curl -X " + k + m + buildH + b + " " + u;

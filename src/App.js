@@ -246,6 +246,7 @@ function App() {
                             />
                           </div>
                           <Toggle
+                            className="mt-3"
                             labelText="Secure"
                             labelA="Off"
                             labelB="On"

@@ -142,7 +142,7 @@ function App() {
     let b = body ? " --data '" + body + "'" : "";
     let u = url ? url : " [URL]";
     let k = secure ? "-k " : "";
-    let curl = "curl -X " + k + m + buildH + b + " " + u;
+    let curl = "curl -X " + m + k + buildH + b + " " + u;
     setCurl(curl);
   }, [method, url, body, headers, headerKey, headerValue, secure]);
 

@@ -137,7 +137,7 @@ function App() {
     let m = method ? method.toUpperCase() : " [HTTP_METHOD]";
     let buildH = "";
     if (headers.length > 0)
-      headers.map((header) => (buildH += "--header '" + header + "'"));
+      headers.map((header) => (buildH += " --header '" + header + "' "));
 
     let b = body ? " --data " + body : "";
     let u = url ? url : " [URL]";

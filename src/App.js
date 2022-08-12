@@ -141,7 +141,7 @@ function App() {
 
     let b = body ? " --data '" + body + "' " : "";
     let u = url ? url : " [URL]";
-    let k = secure ? "-k " : "";
+    let k = secure ? " -k " : "";
     let curl = "curl -X " + m + k + u + buildH + b ;
     setCurl(curl);
   }, [method, url, body, headers, headerKey, headerValue, secure]);

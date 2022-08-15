@@ -46,8 +46,9 @@ const items = [
 function App() {
   const [getResult, setGetResult] = useState(null);
   const [curl, setCurl] = useState(null);
+  const [apiCall, setApiCall] = useState(null);
   const [method, setMethod] = useState(null);
-  const [headers, setHeaders] = useState([]);
+  const [headers, setHeaders] = useState({});
   const [headerKey, setHeaderKey] = useState(null);
   const [headerValue, setHeaderValue] = useState(null);
   const [url, setUrl] = useState(null);
@@ -66,33 +67,11 @@ function App() {
     setGetResult(null);
   };
 
-  function callAPI(e) {
+  async function callAPI(e) {
     setFormUpdated(true);
     e.preventDefault();
-    if (method) {
-      switch (method.toLowerCase()) {
-        case "get":
-          callGET();
-          break;
-        case "post":
-          callGET();
-          break;
-        default:
-          break;
-      }
-    }
-  }
-
-  async function callGET() {
     try {
-      const res =
-        method.toLowerCase() === "get"
-          ? await fetch(url)
-          : await fetch(url, {
-              method: method,
-              headers: headers,
-              body: JSON.stringify(body),
-            });
+      const res = await fetch(url, apiCall);
 
       if (!res.ok) {
         const message = `An error has occured: ${res.status} - ${res.statusText}`;
@@ -117,34 +96,67 @@ function App() {
     }
   }
 
+  function cleanString(str) {
+    let cleanStr1 =
+      str.startsWith("'") || str.startsWith('"')
+        ? str.slice(1, str.length)
+        : str;
+    let cleanStr =
+      cleanStr1.endsWith("'") || cleanStr1.endsWith('"')
+        ? cleanStr1.slice(0, cleanStr1.length - 1)
+        : cleanStr1;
+    return cleanStr;
+  }
+
   function addHeader() {
-    let updatedHeader = headers.length > 0 ? headers : [];
-    let cleanKey =
-      headerKey.startsWith("'") || headerKey.startsWith('"')
-        ? headerKey.slice(1, headerKey.length - 1)
-        : headerKey;
-    let cleanValue =
-      headerValue.startsWith("'") || headerValue.startsWith('"')
-        ? headerValue.slice(1, headerValue.length - 1)
-        : headerValue;
-    updatedHeader.push(cleanKey + ": " + cleanValue);
+    let updatedHeader = Object.keys(headers).length > 0 ? headers : {};
+    updatedHeader[cleanString(headerKey)] = cleanString(headerValue);
     setHeaders(updatedHeader);
     setHeaderKey(null);
     setHeaderValue(null);
   }
 
   useEffect(() => {
-    let m = method ? method.toUpperCase() : " [HTTP_METHOD]";
-    let buildH = "";
-    if (headers.length > 0)
-      headers.map((header) => (buildH += " --header '" + header + "' "));
-
-    let b = body ? " --data '" + body + "' " : "";
-    let u = url ? url : " [URL]";
+    let m = method ? method.toUpperCase() + " " : " [HTTP_METHOD]";
+    let curlH = "";
+    if (Object.keys(headers).length > 0) {
+      Object.entries(headers).map(
+        (header) =>
+          (curlH += " --header '" + header[0] + ": " + header[1] + "' ")
+      );
+    }
+    let b =
+      body && !loadDataFromFile
+        ? " --data '" + body + "' "
+        : body
+        ? " --data @" + fileBody.name
+        : "";
+    let u = url ? url + " " : " [URL]";
     let k = secure ? " -k " : "";
-    let curl = "curl -X " + m + k + u + buildH + b ;
+    let curl = "curl -X " + m + k + u + curlH + b;
     setCurl(curl);
-  }, [method, url, body, headers, headerKey, headerValue, secure]);
+
+    let api = {
+      method: method,
+    };
+    if (headers && Object.keys(headers).length > 0) {
+      api["headers"] = headers;
+    }
+    if (body) {
+      api["body"] = JSON.stringify(body);
+    }
+    setApiCall(api);
+  }, [
+    method,
+    url,
+    body,
+    headers,
+    headerKey,
+    headerValue,
+    secure,
+    fileBody,
+    loadDataFromFile,
+  ]);
 
   return (
     <Form>
@@ -202,17 +214,17 @@ function App() {
                       <TabPanels>
                         <TabPanel>
                           <UnorderedList className="m-3">
-                            {headers.length > 0
-                              ? headers.map((header, index) => (
+                            {Object.entries(headers).length > 0
+                              ? Object.entries(headers).map((value, key) => (
                                   <ListItem
                                     className="some-class"
                                     type="blue"
                                     size="sm"
                                     disabled
-                                    key={"header" + index}
-                                    id={"header" + index}
+                                    key={"header" + key}
+                                    id={"header" + key}
                                   >
-                                    {header}
+                                    {value[0]}: {value[1]}
                                   </ListItem>
                                 ))
                               : ""}
@@ -283,13 +295,15 @@ function App() {
                                 if (e.target.files[0]) {
                                   const reader = new FileReader();
                                   reader.readAsText(e.target.files[0], "UTF-8");
+                                  setFileBody(e.target.files[0]);
                                   reader.onloadend = function () {
-                                    setFileBody(JSON.parse(reader.result));
+                                    setBody(JSON.parse(reader.result));
                                   };
                                 }
                               }}
                               onDelete={(e) => {
                                 setFileBody(null);
+                                setBody(null);
                               }}
                               role="button"
                               size="md"

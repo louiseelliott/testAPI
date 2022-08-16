@@ -67,19 +67,7 @@ function App() {
   async function callAPI(e) {
     setFormUpdated(true);
     e.preventDefault();
-    console.log(apiCall);
-    // let a = apiCall;
-    // // let str= '{"name":"Sammy","email":"sammy@example.com","plan":"Pro"}';
-    // let str =
-    //   '{"id":"2489651045","type":"CreateEvent","actor":{"id":665991,"login":"petroav","gravatar_id":" ","url":"https://api.github.com/users/petroav","avatar_url":"https://avatars.githubusercontent.com/u/665991?"}}';
-    // let userObj = JSON.parse(str, (key, value) => {
-    //   if (typeof value === "string") {
-    //     return value;
-    //   }
-    //   return value;
-    // });
-    // a["body"] = str;
-    // console.log("aaaa", a);
+    
     try {
       const res = await fetch(url, apiCall);
 

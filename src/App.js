@@ -44,8 +44,9 @@ const items = [
 ];
 
 function App() {
-  const [getResult, setGetResult] = useState(null);
+  const [result, setResult] = useState(null);
   const [curl, setCurl] = useState(null);
+  const [curlCommand, setCurlCommand] = useState(null);
   const [apiCall, setApiCall] = useState(null);
   const [method, setMethod] = useState(null);
   const [headers, setHeaders] = useState({});
@@ -58,18 +59,27 @@ function App() {
   const [formUpdated, setFormUpdated] = useState(false);
   const [secure, setSecure] = useState(false);
 
-  const fortmatResponse = (res) => {
-    return JSON.stringify(res, null, 2);
-  };
-
   const clearGetOutput = (e) => {
     e.preventDefault();
-    setGetResult(null);
+    setResult(null);
   };
 
   async function callAPI(e) {
     setFormUpdated(true);
     e.preventDefault();
+    console.log(apiCall);
+    // let a = apiCall;
+    // // let str= '{"name":"Sammy","email":"sammy@example.com","plan":"Pro"}';
+    // let str =
+    //   '{"id":"2489651045","type":"CreateEvent","actor":{"id":665991,"login":"petroav","gravatar_id":" ","url":"https://api.github.com/users/petroav","avatar_url":"https://avatars.githubusercontent.com/u/665991?"}}';
+    // let userObj = JSON.parse(str, (key, value) => {
+    //   if (typeof value === "string") {
+    //     return value;
+    //   }
+    //   return value;
+    // });
+    // a["body"] = str;
+    // console.log("aaaa", a);
     try {
       const res = await fetch(url, apiCall);
 
@@ -77,22 +87,15 @@ function App() {
         const message = `An error has occured: ${res.status} - ${res.statusText}`;
         throw new Error(message);
       }
-
-      const data = await res.json();
-
+      const data = await res.text();
       const result = {
         status: res.status + "-" + res.statusText,
-        headers: {
-          "Content-Type": res.headers.get("Content-Type"),
-          "Content-Length": res.headers.get("Content-Length"),
-        },
-        length: res.headers.get("Content-Length"),
         data: data,
       };
 
-      setGetResult(fortmatResponse(result));
+      setResult(result);
     } catch (err) {
-      setGetResult(err.message);
+      setResult(err.message);
     }
   }
 
@@ -116,34 +119,81 @@ function App() {
     setHeaderValue(null);
   }
 
+  function loadCurl() {
+    let curlCmds = curlCommand.split("--data ");
+    let curlData = curlCmds[1];
+    let curl = curlCmds[0].split(" ");
+    let kvPairs = {};
+    if (curl.length > 0)
+      curl.forEach((c, index) => {
+        if (!c.startsWith("@"))
+          switch (c.toLowerCase()) {
+            case "-i":
+              setUrl(cleanString(curl[index + 1]));
+              break;
+            case "--request":
+            case "-x":
+              let m = curl[index + 1];
+              if (!url && curl[index + 2].toLowerCase() === "-k") {
+                setSecure(true);
+                setUrl(curl[index + 3]);
+              } else {
+                setUrl(curl[index + 2]);
+              }
+              setMethod(getMethodObj(m));
+              break;
+            case "-h":
+            case "--header":
+              let key = curl[index + 1].slice(1, curl[index + 1].length - 1);
+              let val = curl[index + 2].slice(0, curl[index + 2].length - 1);
+              kvPairs[key] = val;
+              break;
+            case "-k":
+              setSecure(true);
+              break;
+            case "curl":
+              break;
+            default:
+              break;
+          }
+      });
+
+    setHeaders(kvPairs);
+    if (!curlData.startsWith("@")) {
+      setFileBody(null);
+      setLoadDataFromFile(false);
+      setBody(cleanString(curlData));
+    }
+  }
+
   useEffect(() => {
-    let m = method ? method.toUpperCase() + " " : " [HTTP_METHOD]";
+    let m = method ? method?.text : " [HTTP_METHOD]";
     let curlH = "";
     if (Object.keys(headers).length > 0) {
       Object.entries(headers).map(
         (header) =>
-          (curlH += " --header '" + header[0] + ": " + header[1] + "' ")
+          (curlH += " --header '" + header[0] + ": " + header[1] + "'")
       );
     }
     let b =
       body && !loadDataFromFile
-        ? " --data '" + body + "' "
-        : body
+        ? " --data '" + body + "'"
+        : body && fileBody?.name
         ? " --data @" + fileBody.name
         : "";
-    let u = url ? url + " " : " [URL]";
-    let k = secure ? " -k " : "";
+    let u = url ? " -i '" + url + "'" : " [URL]";
+    let k = secure ? " -k" : "";
     let curl = "curl -X " + m + k + u + curlH + b;
     setCurl(curl);
 
     let api = {
-      method: method,
+      method: m,
     };
     if (headers && Object.keys(headers).length > 0) {
       api["headers"] = headers;
     }
     if (body) {
-      api["body"] = JSON.stringify(body);
+      api["body"] = body;
     }
     setApiCall(api);
   }, [
@@ -158,6 +208,16 @@ function App() {
     loadDataFromFile,
   ]);
 
+  function getMethodObj(method) {
+    return method
+      ? {
+          id: method.toLowerCase(),
+          label: method.toUpperCase(),
+          text: method.toUpperCase(),
+        }
+      : "";
+  }
+
   return (
     <Form>
       <div className="display-flex">
@@ -166,7 +226,25 @@ function App() {
             <h3>REST API Client</h3>
 
             <div className="card mt-3">
-              <div className="card-header">{curl}</div>
+              <div className="display-flex card-header">
+                <TextArea
+                  className="w-70"
+                  id="curl"
+                  type="text"
+                  labelText="[Optional] Load from curl..."
+                  placeholder="curl command"
+                  onChange={(e) => {
+                    setCurlCommand(e.target.value);
+                  }}
+                />
+                <Button
+                  className="btn btn-sm btn-warning ml-2 mt-3"
+                  onClick={loadCurl}
+                  renderIcon={Add}
+                  iconDescription="Parse curl command"
+                  hasIconOnly
+                />
+              </div>
               <div className="card-body mt-3">
                 <div className="input-group input-group-sm">
                   <div className="m-3 w-20">
@@ -177,9 +255,10 @@ function App() {
                       placeholder="Select API..."
                       id="method"
                       items={items}
+                      selectedItem={method}
                       itemToString={(item) => (item ? item.text : "")}
                       onChange={(e) => {
-                        setMethod(e.selectedItem.id);
+                        setMethod(getMethodObj(e.selectedItem.id));
                       }}
                       invalidText="Method Required"
                       invalid={formUpdated && !method}
@@ -196,6 +275,7 @@ function App() {
                       }}
                       invalidText="URL Required"
                       invalid={formUpdated && !url}
+                      value={url ? url : ""}
                     />
                   </div>
                   <div className="m-3 w-100">
@@ -203,10 +283,7 @@ function App() {
                       <TabList aria-label="List of tabs">
                         <Tab>Headers</Tab>
                         <Tab
-                          disabled={
-                            !method ||
-                            (method && method.toLowerCase() === "get")
-                          }
+                          disabled={!method || (method && method?.id === "get")}
                         >
                           Body
                         </Tab>
@@ -267,7 +344,7 @@ function App() {
                             onToggle={(e) => setSecure(e)}
                           />
                         </TabPanel>
-                        {method && method.toLowerCase() !== "get" ? (
+                        {method && method?.id !== "get" ? (
                           <TabPanel>
                             <TextArea
                               cols={50}
@@ -281,6 +358,7 @@ function App() {
                                 );
                               }}
                               disabled={fileBody}
+                              value={body ? body : ""}
                             />
                             <FileUploader
                               className="mt-3"
@@ -328,6 +406,15 @@ function App() {
                   </Button>
                 </div>
               </div>
+              <div className="card-header">
+                <TextArea
+                  cols={50}
+                  rows={4}
+                  id="body"
+                  labelText="Generated curl command"
+                  value={curl ? curl : ""}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -335,10 +422,11 @@ function App() {
           <div className="m-3">
             <div className="card m-t3">
               <div className="card-header">Response</div>
-              {getResult && (
+              {result && (
                 <div>
                   <div className="alert alert-secondary mt-2" role="alert">
-                    <pre>{getResult}</pre>
+                    Status: {result.status}
+                    <pre className="mt-3">{result.data}</pre>
                   </div>
 
                   <Button
